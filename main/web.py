@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import requests
 import os
 from werkzeug.utils import secure_filename
@@ -26,8 +26,13 @@ def upload():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
         session['uploaded_file'] = filepath
-        return render_template('options.html', filename=filename)
+        return jsonify({'filename': filename})
     return 'No file uploaded', 400
+
+@app.route('/options')
+def options():
+    filename = request.args.get('filename')
+    return render_template('options.html', filename=filename)
 
 @app.route('/transcode', methods=['POST'])
 def transcode():
@@ -42,7 +47,7 @@ def transcode():
 
     if filepath:
         with open(filepath, 'rb') as f:
-            files = {'file': f.read()}
+            files = {'file': (os.path.basename(filepath), f, 'application/octet-stream')}
             data = {
                 'video_format': video_format,
                 'audio_format': audio_format,
