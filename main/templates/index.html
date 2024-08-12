@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload</title>
+    <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/styles.css') }}">
+</head>
+<body>
+    <form id="uploadForm">
+        <input type="file" id="file" name="file" required><br><br>
+        <button type="button" onclick="uploadFile()">Upload File</button>
+    </form>
+
+    <div id="progressWrapper">
+        <div id="progressBar"></div>
+    </div><br><br>
+
+    <form id="optionsForm" style="display:none;">
+        <input type="hidden" id="filename" name="filename">
+
+        <label for="video_format">Output video format:</label>
+        <select id="video_format" name="video_format">
+            <option value="mp4">MP4</option>
+            <option value="mkv">MKV</option>
+        </select><br><br>
+
+        <label for="audio_format">Output audio format:</label>
+        <select id="audio_format" name="audio_format">
+            <option value="ac3">AC3</option>
+            <option value="aac">AAC</option>
+            <option value="dts">libopus</option>
+        </select><br><br>
+
+        <label for="video_bitrate">Video bitrate (e.g., 1000k):</label>
+        <input type="text" id="video_bitrate" name="video_bitrate" required><br><br>
+
+        <label for="audio_bitrate">Audio bitrate (e.g., 128k):</label>
+        <input type="text" id="audio_bitrate" name="audio_bitrate" required><br><br>
+
+        <label for="resolution">Output resolution:</label>
+        <select id="resolution" name="resolution">
+            <option value="720p">720p</option>
+            <option value="1080p">1080p</option>
+            <option value="2160p">2160p (4k)</option>
+        </select><br><br>
+
+        <label for="gpu_or_cpu">Transcoding method:</label>
+        <select id="gpu_or_cpu" name="gpu_or_cpu">
+            <option value="cpu">CPU</option>
+            <option value="cuda">GPU (CUDA)</option>
+        </select><br><br>
+
+        <label for="video_codec">Video codec:</label>
+        <select id="video_codec" name="video_codec">
+            <option value="libx264">libx264 (CPU)</option>
+            <option value="libx265">libx265 (CPU)</option>
+            <option value="h264_nvenc">h264_nvenc (GPU)</option>
+            <option value="hevc_nvenc">hevc_nvenc (h265, GPU)</option>
+        </select><br><br>
+
+        <button type="button" onclick="transcodeFile()">Transcode File</button>
+    </form>
+
+    <script>
+        function uploadFile() {
+            const fileInput = document.getElementById('file');
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload', true);
+
+            xhr.upload.onprogress = function(event) {
+                if (event.lengthComputable) {
+                    const percentComplete = (event.loaded / event.total) * 100;
+                    document.getElementById('progressWrapper').style.display = 'block';
+                    document.getElementById('progressBar').style.width = percentComplete + '%';
+                }
+            };
+
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    const response = JSON.parse(xhr.responseText);
+                    document.getElementById('filename').value = response.filename;
+                    document.getElementById('uploadForm').style.display = 'none';
+                    document.getElementById('progressWrapper').style.display = 'none';
+                    document.getElementById('optionsForm').style.display = 'block';
+                } else {
+                    console.error('Error:', xhr.statusText);
+                }
+            };
+
+            xhr.onerror = function() {
+                console.error('Error:', xhr.statusText);
+            };
+
+            xhr.send(formData);
+        }
+
+        function transcodeFile() {
+            const optionsForm = document.getElementById('optionsForm');
+            const formData = new FormData(optionsForm);
+
+            fetch('/transcode', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                document.body.innerHTML = data;
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>

@@ -3,7 +3,11 @@ import requests
 import os
 import ffmpeg
 
+# disable internal tls warning
+requests.packages.urllib3.disable_warnings()
+
 app = Flask(__name__)
+app.secret_key = 'supersecretkey'  # Needed for session management
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
